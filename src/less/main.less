@@ -1,0 +1,14 @@
+/**
+ * The main less file.
+ * Any module-specific styles should be authored
+ * within the module's folder.
+ */
+
+// Base reset
+@import './normalize.less';
+
+// Dynamically load less files from each module
+<% lessFiles.forEach( function ( file ) { %>
+@import '<%= file %>';
+<% }); %>
+
