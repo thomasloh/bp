@@ -8,6 +8,16 @@ var _ = require('underscore');
 var path = require('path');
 var browserify = require('browserify');
 
+// Cached browserify transforms
+var cachedTransforms = require('./grunt/config/browserify/cached-transforms');
+var reactify = cachedTransforms.reactify;
+var es6ify = cachedTransforms.es6ify;
+var deamdify = cachedTransforms.deamdify;
+var deglobalify = cachedTransforms.deglobalify;
+
+// Import grunt tasks/config
+var scaffolder = require('./grunt/config/scaffolder/main');
+
 // Grunt
 module.exports = function (grunt) {
 
@@ -111,23 +121,6 @@ module.exports = function (grunt) {
      */
 
     grunticon: {
-
-    },
-
-    /** TODO
-     * Rework CSS
-     * - vendor prefixes, use fns
-     */
-
-    rework: {
-
-    },
-
-    /** TODO
-     * Creates changeslog on new versions
-     */
-
-    changelog: {
 
     },
 
@@ -381,33 +374,6 @@ module.exports = function (grunt) {
     },
 
     /**
-     * `jsbeautifier` makes js looks pretty
-     */
-
-    jsbeautifier: {
-      src: ['Gruntfile.js', '<%= app_files.js %>'],
-      options: {
-        js: {
-          "indent_size": 2,
-          "indent_char": " ",
-          "indent_level": 0,
-          "indent_with_tabs": false,
-          "preserve_newlines": true,
-          "max_preserve_newlines": 2,
-          "jslint_happy": true,
-          "brace_style": "collapse",
-          "keep_array_indentation": false,
-          "keep_function_indentation": false,
-          "space_before_conditional": true,
-          "break_chained_methods": false,
-          "eval_code": false,
-          "unescape_strings": false,
-          "wrap_line_length": 0
-        }
-      }
-    },
-
-    /**
      * `coffeelint` linting for coffeescripts
      */
     coffeelint: {
@@ -462,55 +428,67 @@ module.exports = function (grunt) {
       /**
        * Compiles js/coffee for development and testing
        */
-      compile: {
-        src: [
-          // Application javascripts/coffeescripts
-          'src/app/**/*.js',
-          'src/app/**/*.coffee'
-        ],
-        dest: '<%= compile_dir %>/<%= pkg.name %>-<%= pkg.version %>.js',
-        cwd: '.',
-        options: {
-          debug: true,
-          noParse: _.keys(build_config.vendor_files.js),
-          alias: _.map(_.extend({}, build_config.vendor_files.js, generateBrowserifyShim()), function (v, k) {
-            return k + ':' + v;
-          }),
-          external: _.values(_.extend({}, build_config.vendor_files.js, generateBrowserifyShim())),
-          transform: [
-            'es6ify',
-            'node-underscorify',
-            'coffeeify',
-            'deamdify'
-          ]
-        }
-      },
+       compile: {
+         src: [
+           // Application javascripts/coffeescripts
+           'src/client.js'
+         ],
+         dest: '<%= compile_dir %>/<%= pkg.name %>-<%= pkg.version %>.js',
+         cwd: '.',
+         options: {
+           'debug': true,
+           'noParse': _.union(_.keys(build_config.vendor_files.js)),
+           'alias': _.map(generateBrowserifyShim(), function (v, k) {
+             return k + ':' + v;
+           }),
+           'external': _.union(_.map(generateBrowserifyShim(), function (v, k) {
+             return v;
+           })),
+           'transform': [
+             reactify,
+             es6ify
+           ],
+           'shim': {
+             // 'isotope': {
+             //     path: 'vendor/isotope/index.js',
+             //     exports: 'Isotope'
+             // }
+           },
+           postBundleCB: function(err, src, next) {
+             // To prevent resource lock on leveldb
+             cachedTransforms.db.close();
+             next(err, src);
+           }
+         }
+       },
 
       /**
        * Builds js/coffee for production/deployment
        */
+
       build: {
         src: [
           // Application javascripts/coffeescripts
-          'src/app/**/*.js',
-          'src/app/**/*.coffee'
+          'src/client.js'
         ],
         dest: '<%= build_dir %>/<%= pkg.name %>-<%= pkg.version %>.js',
         cwd: '.',
         options: {
-          noParse: _.keys(build_config.vendor_files.js),
-          alias: _.map(_.extend({}, build_config.vendor_files.js, generateBrowserifyShim()), function (v, k) {
+          'debug': false,
+          'noParse': _.union(_.keys(build_config.vendor_files.js)),
+          'alias': _.map(generateBrowserifyShim(), function (v, k) {
             return k + ':' + v;
           }),
-          external: _.values(_.extend({}, build_config.vendor_files.js, generateBrowserifyShim())),
-          transform: [
-            'es6ify',
-            'node-underscorify',
-            'coffeeify',
-            'deamdify'
-          ]
+          'external': _.union(_.map(generateBrowserifyShim(), function (v, k) {
+            return v;
+          })),
+          'transform': [
+            reactify,
+            es6ify
+          ],
         }
-      }
+      },
+
     },
 
     /**
@@ -524,25 +502,6 @@ module.exports = function (grunt) {
         },
         files: {
           '<%= build_dir %>/<%= pkg.name %>-<%= pkg.version %>.js': '<%= build_dir %>/<%= pkg.name %>-<%= pkg.version %>.js'
-        }
-      }
-    },
-
-    /**
-     * `audit` audits the web app
-     */
-
-    audit: {
-      dev: {
-        options: {
-          port: 9001,
-          base: '<%= compile_dir %>'
-        }
-      },
-      prod: {
-        options: {
-          port: 9001,
-          base: '<%= build_dir %>'
         }
       }
     },
@@ -562,20 +521,6 @@ module.exports = function (grunt) {
         options: {
           port: 9001,
           base: '<%= build_dir %>'
-        }
-      }
-    },
-
-    /**
-     * `phantomas` collects metrics for the website
-     */
-
-    phantomas: {
-      web: {
-        options: {
-          indexPath: './audit/',
-          numberOfRuns: 20,
-          url: 'http://localhost:9001'
         }
       }
     }
@@ -662,13 +607,6 @@ module.exports = function (grunt) {
   ]);
 
   /**
-   * The `audit` process audits the webpage
-   */
-
-  grunt.registerTask('audit:dev', ['compile', 'connect:dev', 'phantomas']);
-  grunt.registerTask('audit:prod', ['build', 'connect:prod', 'phantomas']);
-
-  /**
    * The `watch` task helps during development/testing by re-compiling everything
    * and reloads the browser
    */
@@ -724,5 +662,11 @@ module.exports = function (grunt) {
       }
     });
   });
+
+  /**
+   * Scaffolder
+   */
+
+  grunt.registerTask('scaffold', 'Scaffolds a component', scaffolder.component);
 
 };

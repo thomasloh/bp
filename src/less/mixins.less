@@ -1,0 +1,137 @@
+// CSS3 Animations
+.animation (@name, @duration: 300ms, @ease: ease, @forwards: forwards) {
+  -webkit-animation: @name @duration @ease @forwards;
+  -moz-animation:    @name @duration @ease @forwards;
+  -ms-animation:     @name @duration @ease @forwards;
+}
+// CSS3 Transforms
+.transform (@string){
+  -webkit-transform: e(@string);
+  -moz-transform:    e(@string);
+  -ms-transform:     e(@string);
+  -o-transform:      e(@string);
+}
+
+.transform-style (@string) {
+  -webkit-transform-style : @string;
+  transform-style         : @string;
+}
+
+.backface-visibility (@string) {
+  -webkit-backface-visibility   : @string; /* Chrome and Safari */
+  -moz-backface-visibility      : @string; /* Firefox */
+  -ms-backface-visibility       : @string; /* Internet Explorer */
+  backface-visibility           : @string;
+}
+
+.perspective (@n) {
+  -webkit-perspective : @n; /* Safari and Chrome */
+  perspective         : @n;
+}
+
+.transition-multiple (@transition) {
+  -webkit-transition: e(@transition);
+  -moz-transition:    e(@transition);
+  -ms-transition:     e(@transition);
+  -o-transition:      e(@transition);
+}
+
+.transition (@transition, @t) when (isstring(@t)) {
+  -webkit-transition: ~`"-webkit-@{transition}"` e(@t);
+  -moz-transition:    ~`"-moz-@{transition}"` e(@t);
+  -ms-transition:     ~`"-ms-@{transition}"` e(@t);
+  -o-transition:      ~`"-o-@{transition}"` e(@t);
+}
+
+.placeholder-color-mixin (@color) {
+  &::-webkit-input-placeholder {
+     color: @color;
+  }
+
+  &:-moz-placeholder { /* Firefox 18- */
+     color: @color;
+  }
+
+  &::-moz-placeholder {  /* Firefox 19+ */
+     color: @color;
+  }
+
+  &:-ms-input-placeholder {
+     color: @color;
+  }
+}
+
+
+//---Keyframes---
+
+
+.keyframes-mixins(@property,@valueFrom,@valueTo){
+    @-webkit-keyframes blinking-background {
+      from {
+        @property:0;
+      }
+
+      to {
+        @property:1;
+      }
+    }
+    @-moz-keyframes blinking-background {
+      from {
+        @property:0;
+      }
+
+      to {
+        @property:1;
+      }
+    }
+}
+
+
+
+
+
+//---ANIMATION---
+.animation-name(@arguments) {
+  -webkit-animation-name: @arguments;
+  -moz-animation-name: @arguments;
+  -o-animation-name: @arguments;
+  animation-name: @arguments;
+}
+.animation-duration(@arguments) {
+  -webkit-animation-duration: @arguments;
+  -moz-animation-duration: @arguments;
+  -o-animation-duration: @arguments;
+  animation-duration: @arguments;
+}
+.animation-timing-function(@arguments) {
+  -webkit-animation-timing-function: @arguments;
+  -moz-animation-timing-function: @arguments;
+  -o-animation-timing-function: @arguments;
+  animation-timing-function: @arguments;
+}
+.animation-delay(@arguments) {
+  -webkit-animation-delay: @arguments;
+  -moz-animation-delay: @arguments;
+  -o-animation-delay: @arguments;
+  animation-delay: @arguments;
+}
+.animation-iteration-count(@arguments) {
+  -webkit-animation-iteration-count: @arguments;
+  -moz-animation-iteration-count: @arguments;
+  -o-animation-iteration-count: @arguments;
+  animation-iteration-count: @arguments;
+}
+.animation-direction(@arguments) {
+  -webkit-animation-direction: @arguments;
+  -moz-animation-direction: @arguments;
+  -o-animation-direction: @arguments;
+  animation-direction: @arguments;
+}
+.animation-fill-mode(@arguments) {
+  -webkit-animation-fill-mode: @arguments;
+  -moz-animation-fill-mode: @arguments;
+  -o-animation-fill-mode: @arguments;
+  animation-fill-mode: @arguments;
+}
+
+//------
