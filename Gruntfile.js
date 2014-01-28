@@ -13,7 +13,6 @@ var cachedTransforms = require('./grunt/config/browserify/cached-transforms');
 var reactify = cachedTransforms.reactify;
 var es6ify = cachedTransforms.es6ify;
 var deamdify = cachedTransforms.deamdify;
-var deglobalify = cachedTransforms.deglobalify;
 
 // Import grunt tasks/config
 var scaffolder = require('./grunt/config/scaffolder/main');
@@ -62,16 +61,31 @@ module.exports = function (grunt) {
   /**
    * A utility function to generate module shim for browserify
    */
-  function generateBrowserifyShim() {
-    var targetFiles = _.union(grunt.file.expand(['src/**/*.coffee']), grunt.file.expand(['src/**/*.js']));
-    var shim = {};
-    targetFiles.forEach(function(f) {
-      var basename = (basename = path.basename(f, '.js')).length < path.basename(f).length ? basename : path.basename(f, '.coffee');
-      var key      = (key = path.dirname(f).replace('src/app/', '').replace('src/common/', '').replace(/\//g, '.')) === basename ? basename : key;
-      shim[f] = key;
-    });
-    return shim;
-  }
+   function generateBrowserifyShim(opts) {
+
+     opts = opts || {};
+
+     var srcFiles = grunt.file.expand(['src/**/*.js']);
+     var shim = {};
+     var seenModules = {};
+     srcFiles.forEach(function(f) {
+       var basename = (basename = path.basename(f, '.js')).length < path.basename(f).length ? basename : path.basename(f, '.coffee');
+       var modulename = path.dirname(f)
+                 .replace(/src/, '')
+                 .replace(/\//, '')
+                 .replace(/\//g, '.');
+       if (modulename.split('.').pop() === basename) {
+         shim[f] = modulename;
+       }
+     });
+
+     // Post process
+     if (!opts.app) {
+       delete shim['src/app/app.js'];
+     }
+
+     return shim;
+   }
 
   // grunt.registerTask('gs','gs', function() {
   //   console.log(generateBrowserifyShim())
@@ -298,9 +312,6 @@ module.exports = function (grunt) {
       compile: {
         options: {
           compress: false,
-          strictImports: true,
-          strictMath: true,
-          strictUnits: true,
           dumpLineNumbers: 'all',
           sourceMap: false,
           report: 'min'
@@ -312,9 +323,6 @@ module.exports = function (grunt) {
       build: {
         options: {
           compress: true,
-          strictImports: true,
-          strictMath: true,
-          strictUnits: true,
           cleancss: true
         },
         files: {
@@ -527,6 +535,9 @@ module.exports = function (grunt) {
 
   };
 
+  // Time grunt tasks
+  require('time-grunt')(grunt);
+
   // Supply Grunt with config
   grunt.initConfig(_.extend(grunt_config, build_config));
 
@@ -611,7 +622,7 @@ module.exports = function (grunt) {
    * and reloads the browser
    */
   grunt.renameTask('watch', 'watcher');
-  grunt.registerTask('watch', ['compile', 'watcher']);
+  grunt.registerTask('watch', ['connect:dev', 'compile', 'watcher']);
 
   /**
    * The index.html template includes the stylesheet and javascript sources
