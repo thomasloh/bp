@@ -17,16 +17,20 @@
  */
 
 // Grab utilities
- var _  = require('common.utils');
- var crossroads = require('crossroads');
+var _  = require('common.utils');
+var crossroads = require('crossroads');
 
- /**
-  * Match a route
-  * @public
-  * @param {String} route The route to be processed
-  * @param {Object} mapping The route mapping to be matched against
-  * @return Invocation of matched function
-  */
+// Internals
+var __main;
+
+/**
+* Match a route
+* @public
+* @param {String} route The route to be processed
+* @param {Object} mapping The route mapping to be matched against
+* @return {Boolean} True means route handler executed, false means
+*                   redirected or non match
+*/
 function match(route, mapping) {
 
   // Pre-check
@@ -41,29 +45,102 @@ function match(route, mapping) {
   // Create a new crossroad instance
   var __crossroads = crossroads.create();
 
-  // Add all routes
+  // Parse routes
+  var routeMatched;
+  var routeMatchedResult;
   var routeKeys = _.keys(mapping).sort().reverse();
-  _.each(routeKeys, function(r) {
-    if (_.isFunction(mapping[r])) {
-      r = _.ensureUnsuffixed(r, '/');
-      r = __crossroads.addRoute(r + '/:rest*:', mapping[r]);
-    }
-  });
+  for (var i = 0, max = routeKeys.length; i < max; i++) {
+    var r       = routeKeys[i];
+    var routeFn = mapping[r];
 
-  // Parse
-  return __crossroads.parse(route);
+    if (_.isFunction(routeFn)) {
+      r = _.ensureUnsuffixed(r, '/');
+      r = __crossroads.addRoute(r + '/:rest*:');
+      if (r.match(route)) {
+        routeFn();
+        routeMatched = true;
+        break;
+      }
+    }
+  }
+
+  // Default route, if any
+  if (!routeMatched && mapping.__default__) {
+    var defaultRoute = _.ensureTrimmedPrefix(mapping.__default__, '/');
+    if (process.browser) {
+      // Use history.js to redirect on client side
+      var redirectRoute = global.History.root + defaultRoute;
+      global.requestAnimFrame(function() {
+        global.History.pushState({
+          urlPath: _.ensurePrefixed(mapping.__default__, '/')
+        }, '', redirectRoute);
+      });
+    } else {
+      // For server redirect later
+      global.location.__redirect__ = defaultRoute;
+    }
+    return false;
+  }
+
+  return true;
+
 }
 
-// Public API
-var facade = {
+/**
+* Navigate to another route
+* @public
+* @param {String} route The route to navigate to
+* @return Invocation of matched function
+*/
 
-  /**
-   * Match a route
-   * @see match()
-   */
-  'match': match
+function navigate(route) {
 
-};
+  if (!global.History) {
+    return console.warn("No History object found, navigation failed.");
+  }
 
+  if (!route || !_.isString(route)) {
+    return console.warn("Route not a valid string, navigation failed.");
+  }
 
-module.exports = facade;
+  // Always do fresh navigation
+  global.History.savedStates = [];
+
+  // Do it
+  global.History.pushState({
+    urlPath: route
+  }, null, _.ensureUnsuffixed(global.History.root, '/') + _.ensurePrefixed(route, '/'));
+
+}
+
+// Constructor
+function Router() {
+
+  // Track
+  __main = this;
+
+  // Public API
+  _.extend(this, {
+
+    /**
+     * Match a route
+     * @see match()
+     */
+    'match': match,
+
+    /**
+     * Navigate to another route
+     * @see navigate()
+     */
+    'navigate': navigate,
+
+    /**
+     * Override
+     */
+    'redirect': _.noop
+
+  });
+
+}
+
+module.exports = new Router();

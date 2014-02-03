@@ -30,14 +30,17 @@ var App = React.createClass({
   render() {
 
     // Route matching
-    router.match(this.props.route, this.routes());
+    var routeSuccess =router.match(this.props.route, this.routes());
+
+    if (!routeSuccess) {
+      this.main = null;
+    }
 
     // JSX
     return (
 
 
       <div className="app">
-
 
       </div>
 

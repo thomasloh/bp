@@ -193,8 +193,37 @@ module.exports = function (grunt) {
           cwd: '<%= compile_dir %>/assets/',
           expand: true
         }]
+      },
+      compile_root_files: {
+        files: [{
+          src: [
+            '404.html',
+            'apple-touch-icon-precomposed.png',
+            'crossdomain.xml',
+            'favicon.ico',
+            'humans.txt',
+            'robots.txt'
+          ],
+          dest: '<%= compile_dir %>/',
+          cwd: 'src',
+          expand: true
+        }]
+      },
+      build_root_files: {
+        files: [{
+          src: [
+            '404.html',
+            'apple-touch-icon-precomposed.png',
+            'crossdomain.xml',
+            'favicon.ico',
+            'humans.txt',
+            'robots.txt'
+          ],
+          dest: '<%= build_dir %>/',
+          cwd: 'src',
+          expand: true
+        }]
       }
-
     },
 
     /**
@@ -566,6 +595,7 @@ module.exports = function (grunt) {
     'copy:compile_app_src',
 
     // Assets
+    'copy:compile_root_files',
     'copy:compile_app_assets',
     'copy:compile_vendor_assets',
 
@@ -600,6 +630,7 @@ module.exports = function (grunt) {
     'clean:less',
 
     // Assets
+    'copy:build_root_files',
     'copy:compile_app_assets',
     'copy:compile_vendor_assets',
     'copy:build_assets',
